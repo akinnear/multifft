@@ -1,0 +1,14 @@
+apply plugin: 'java'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'org.bytedeco.javacpp-presets:fftw-platform:3.3.8-1.4.2'
+    testCompile 'junit:junit:4.12'
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = "4.10.2"
+}
