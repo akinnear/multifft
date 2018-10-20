@@ -6,6 +6,7 @@ import org.bytedeco.javacpp.Loader;
 import org.bytedeco.javacpp.presets.fftw3;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.bytedeco.javacpp.fftw3.*;
@@ -15,7 +16,7 @@ public class FftwFFT implements FFT, AutoCloseable {
         Loader.load(fftw3.class);
     }
 
-    private Map<Integer, fftw_plan> planMap = new ConcurrentHashMap<>();
+    private Map<SizeDirection, fftw_plan> planMap = new ConcurrentHashMap<>();
 
     @Override
     public double[] fft(double[] input) {
@@ -46,7 +47,9 @@ public class FftwFFT implements FFT, AutoCloseable {
         int numPairs = inputSize / 2;
         DoublePointer signal = new DoublePointer(input);
         DoublePointer result = new DoublePointer(inputSize);
-        fftw_plan plan = planMap.computeIfAbsent(numPairs, i -> fftw_plan_dft_1d(i, signal, result, sign, (int) FFTW_ESTIMATE));
+        fftw_plan plan = planMap.computeIfAbsent(
+                new SizeDirection(numPairs, sign),
+                i -> fftw_plan_dft_1d(i.size, signal, result, sign, (int) FFTW_ESTIMATE));
         fftw_execute_dft(plan, signal, result);
         double[] output = new double[inputSize];
         result.get(output);
@@ -70,6 +73,31 @@ public class FftwFFT implements FFT, AutoCloseable {
             } finally {
                 plan.close();
             }
+        }
+    }
+
+    private static class SizeDirection {
+        private int size;
+        private int direction;
+
+        public SizeDirection(int size, int direction) {
+            this.size = size;
+            this.direction = direction;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            SizeDirection that = (SizeDirection) o;
+            return size == that.size &&
+                    direction == that.direction;
+        }
+
+        @Override
+        public int hashCode() {
+
+            return Objects.hash(size, direction);
         }
     }
 }

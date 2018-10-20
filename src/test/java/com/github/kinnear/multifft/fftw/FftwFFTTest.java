@@ -30,94 +30,85 @@ public class FftwFFTTest {
         fftwFFT.fft(null);
     }
 
-    @Test
-    public void testEmptyFFT() {
-        double[] result = fftwFFT.fft(new double[0]);
-        assertArrayEquals(new double[0], result, TEST_DOUBLE_PRECISION);
-    }
-
-    @Test
-    public void testSinglePairFFT() {
-        testFFT(2, FFT_1_TO_2);
-    }
-
-    @Test
-    public void testTwoPairFFT() {
-        testFFT(4, FFT_1_TO_4);
-    }
-
-    @Test
-    public void test128PairFFT() {
-        testFFT(256, FFT_1_TO_256);
-    }
-
-    @Test
-    public void test2PairsOf128PairFFT() {
-        testFFT(256, FFT_1_TO_256);
-        testFFT(257, 256, FFT_257_TO_512);
-    }
-
-    @Test
-    public void test256PairFFT() {
-        testFFT(512, FFT_1_TO_512);
-    }
-
-    private void testFFT(int limit, double[] expected) {
-        testFFT(1, limit, expected);
-    }
-
-    private void testFFT(int startSeed, int limit, double[] expected) {
-        double[] input = DoubleStream.iterate(startSeed, i->i+1).limit(limit).toArray();
-        double[] result = fftwFFT.fft(input);
-        assertArrayEquals(expected, result, TEST_DOUBLE_PRECISION);
-    }
-
     @Test(expected=FFT.IllegalInput.class)
     public void testNullIFFT() {
         fftwFFT.ifft(null);
     }
 
     @Test
-    public void testEmptyIFFT() {
-        double[] result = fftwFFT.ifft(new double[0]);
-        assertArrayEquals(new double[0], result, TEST_DOUBLE_PRECISION);
+    public void testEmpty() {
+        double[] input = new double[0];
+        double[] result = fftwFFT.fft(input);
+        assertEquals(0, result.length);
+        result = fftwFFT.ifft(input);
+        assertEquals(0, result.length);
     }
 
     @Test
-    public void testSinglePairIFFT() {
-        testIFFT(2, FFT_1_TO_2);
+    public void test1Pair() {
+        generatedRoundTripTest(FFT_1_TO_2, 1, 2);
     }
 
     @Test
-    public void testTwoPairIFFT() {
-        testIFFT(4, FFT_1_TO_4);
+    public void test2Pairs() {
+        generatedRoundTripTest(FFT_1_TO_4, 1, 4);
     }
 
     @Test
-    public void test128PairIFFT() {
-        testIFFT(256, FFT_1_TO_256);
+    public void test7Pairs() {
+        generatedRoundTripTest(FFT_1_TO_14, 1, 14);
     }
 
     @Test
-    public void test2PairsOf128PairIFFT() {
-        testIFFT(256, FFT_1_TO_256);
-        testIFFT(257, 256, FFT_257_TO_512);
+    public void test128Pairs() {
+        generatedRoundTripTest(FFT_1_TO_256, 1, 256);
     }
 
     @Test
-    public void test256PairIFFT() {
-        testIFFT(512, FFT_1_TO_512);
+    public void test2PairsOf128Pairs() {
+        generatedRoundTripTest(FFT_1_TO_256, 1, 256);
+        generatedRoundTripTest(FFT_257_TO_512, 257, 256);
     }
 
-    private void testIFFT(int limit, double[] input) {
-        testIFFT(1, limit, input);
+    @Test
+    public void test256Pairs() {
+        generatedRoundTripTest(FFT_1_TO_512, 1, 512);
     }
 
-    private void testIFFT(int seed, int limit, double[] input) {
-        // scaling is required for IFFT to match
-        double[] expected = DoubleStream.iterate(seed, i->i+1).limit(limit).map(i->i*input.length/2).toArray();
-        double[] result = fftwFFT.ifft(Arrays.stream(input).toArray());
-        assertArrayEquals(expected, result, TEST_DOUBLE_PRECISION);
+    @Test
+    public void test256PairsJustInverse() {
+        testIFFT(createInput(1,512), FFT_1_TO_512);
+    }
+
+    private void generatedRoundTripTest(double[] expected, int start, int limit) {
+        double[] input = createInput(start, limit);
+        roundTripTest(expected, input);
+    }
+
+    private double[] createInput(int start, int limit) {
+        return DoubleStream.iterate(start, i->i+1).limit(limit).toArray();
+    }
+
+    private void roundTripTest(double[] expected, double[] input) {
+        double[] fftResult = testFFT(expected, input);
+        testIFFT(input, fftResult);
+    }
+
+    private void testIFFT(double[] expected, double[] input) {
+        double[] ifftResult = fftwFFT.ifft(input);
+        double[] scaledIfftResult = handleFftwScaling(ifftResult);
+        assertArrayEquals(expected, scaledIfftResult, TEST_DOUBLE_PRECISION);
+    }
+
+    private double[] testFFT(double[] expected, double[] input) {
+        double[] fftResult = fftwFFT.fft(input);
+        assertArrayEquals(expected, fftResult, TEST_DOUBLE_PRECISION);
+        return fftResult;
+    }
+
+    private double[] handleFftwScaling(double[] input) {
+        int numPairs = input.length / 2;
+        return Arrays.stream(input).map(i -> i/numPairs).toArray();
     }
 
 }
