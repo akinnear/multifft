@@ -1,7 +1,6 @@
 package com.github.kinnear.multifft.fftw;
 
 import com.github.kinnear.multifft.AbstractFFT;
-import com.github.kinnear.multifft.FFT;
 import org.bytedeco.javacpp.DoublePointer;
 import org.bytedeco.javacpp.Loader;
 import org.bytedeco.javacpp.presets.fftw3;
@@ -10,7 +9,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static org.bytedeco.javacpp.fftw3.*;
+import static org.bytedeco.javacpp.fftw3.FFTW_BACKWARD;
+import static org.bytedeco.javacpp.fftw3.FFTW_ESTIMATE;
+import static org.bytedeco.javacpp.fftw3.FFTW_FORWARD;
+import static org.bytedeco.javacpp.fftw3.fftw_cleanup;
+import static org.bytedeco.javacpp.fftw3.fftw_destroy_plan;
+import static org.bytedeco.javacpp.fftw3.fftw_execute_dft;
+import static org.bytedeco.javacpp.fftw3.fftw_plan;
+import static org.bytedeco.javacpp.fftw3.fftw_plan_dft_1d;
 
 public class FftwFFT extends AbstractFFT implements AutoCloseable {
     static {
