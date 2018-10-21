@@ -1,5 +1,6 @@
 package com.github.kinnear.multifft.fftw;
 
+import com.github.kinnear.multifft.AbstractFFT;
 import com.github.kinnear.multifft.FFT;
 import org.bytedeco.javacpp.DoublePointer;
 import org.bytedeco.javacpp.Loader;
@@ -11,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static org.bytedeco.javacpp.fftw3.*;
 
-public class FftwFFT implements FFT, AutoCloseable {
+public class FftwFFT extends AbstractFFT implements AutoCloseable {
     static {
         Loader.load(fftw3.class);
     }
@@ -19,26 +20,12 @@ public class FftwFFT implements FFT, AutoCloseable {
     private Map<SizeDirection, fftw_plan> planMap = new ConcurrentHashMap<>();
 
     @Override
-    public double[] fft(double[] input) {
-        if (input == null) {
-            throw new IllegalInput();
-        }
-        if (input.length == 0) {
-            return new double[0];
-        }
-
+    protected double[] safeFft(double[] input) {
         return fftWithSign(input, FFTW_FORWARD);
     }
 
     @Override
-    public double[] ifft(double[] input) {
-        if (input == null) {
-            throw new IllegalInput();
-        }
-        if (input.length == 0) {
-            return new double[0];
-        }
-
+    protected double[] safeIfft(double[] input) {
         return fftWithSign(input, FFTW_BACKWARD);
     }
 
@@ -49,7 +36,7 @@ public class FftwFFT implements FFT, AutoCloseable {
         DoublePointer result = new DoublePointer(inputSize);
         fftw_plan plan = planMap.computeIfAbsent(
                 new SizeDirection(numPairs, sign),
-                i -> fftw_plan_dft_1d(i.size, signal, result, sign, (int) FFTW_ESTIMATE));
+                i -> fftw_plan_dft_1d(i.size, signal, result, i.direction, (int) FFTW_ESTIMATE));
         fftw_execute_dft(plan, signal, result);
         double[] output = new double[inputSize];
         result.get(output);
@@ -80,7 +67,7 @@ public class FftwFFT implements FFT, AutoCloseable {
         private int size;
         private int direction;
 
-        public SizeDirection(int size, int direction) {
+        SizeDirection(int size, int direction) {
             this.size = size;
             this.direction = direction;
         }
